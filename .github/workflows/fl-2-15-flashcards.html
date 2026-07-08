@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>FL 2-15 Flashcards</title>
+<style>
+  :root {
+    --gold: #D4AF37;
+    --black: #111111;
+    --lightbg: #f7f5f0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: var(--lightbg);
+    margin: 0;
+    padding: 20px;
+    color: var(--black);
+  }
+  .container { max-width: 700px; margin: 0 auto; }
+  header {
+    background: var(--black);
+    color: var(--gold);
+    padding: 22px;
+    border-radius: 12px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  header h1 { margin: 0 0 6px 0; font-size: 22px; }
+  header p { margin: 0; color: #ddd; font-size: 13px; }
+
+  #controls {
+    background: white;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  #chapter-select {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px;
+    border-radius: 8px;
+    border: 2px solid #ddd;
+    font-size: 14px;
+  }
+  .ctrl-btn {
+    background: var(--black);
+    color: var(--gold);
+    border: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .ctrl-btn:hover { background: #2a2a2a; }
+  .ctrl-btn.secondary {
+    background: #eee;
+    color: var(--black);
+  }
+  .ctrl-btn.secondary:hover { background: #e0e0e0; }
+
+  #stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 10px;
+    padding: 0 4px;
+  }
+  #progress-bar-wrap {
+    background: #ddd;
+    border-radius: 20px;
+    height: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  #progress-bar {
+    background: var(--gold);
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+
+  #card-scene {
+    perspective: 1200px;
+    margin-bottom: 20px;
+  }
+  #card {
+    position: relative;
+    width: 100%;
+    height: 320px;
+    cursor: pointer;
+  }
+  #card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s;
+    transform-style: preserve-3d;
+  }
+  #card.flipped #card-inner {
+    transform: rotateY(180deg);
+  }
+  .card-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  }
+  .card-front {
+    background: white;
+    border: 3px solid var(--gold);
+  }
+  .card-back {
+    background: var(--black);
+    color: white;
+    transform: rotateY(180deg);
+  }
+  .card-label {
+    position: absolute;
+    top: 14px;
+    left: 18px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: bold;
+  }
+  .card-front .card-label { color: var(--gold); }
+  .card-back .card-label { color: var(--gold); }
+  .card-chapter-tag {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    font-size: 10px;
+    color: #999;
+  }
+  .card-back .card-chapter-tag { color: #aaa; }
+  .card-text {
+    font-size: 19px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .card-back .card-text {
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+  .flip-hint {
+    text-align: center;
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 18px;
+  }
+
+  #nav-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  #nav-buttons button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  #prev-btn, #next-btn {
+    background: #eee;
+    color: var(--black);
+  }
+  #prev-btn:hover, #next-btn:hover { background: #e0e0e0; }
+
+  #know-buttons {
+    display: flex;
+    gap: 10px;
+  }
+  #know-buttons button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    color: white;
+  }
+  #still-learning-btn { background: #c62828; }
+  #still-learning-btn:hover { background: #a92222; }
+  #know-it-btn { background: #2e7d32; }
+  #know-it-btn:hover { background: #256428; }
+
+  #done-screen {
+    display: none;
+    background: var(--black);
+    color: white;
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+  }
+  #done-screen h2 { color: var(--gold); margin-top: 0; }
+  #done-score { font-size: 36px; font-weight: bold; color: var(--gold); margin: 10px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>FL 2-15 Flashcards</h1>
+    <p>Tap a card to flip it — mark what you know as you go</p>
+  </header>
+
+  <div id="controls">
+    <select id="chapter-select"></select>
+    <button class="ctrl-btn secondary" id="shuffle-btn">🔀 Shuffle</button>
+    <button class="ctrl-btn secondary" id="reset-btn">↺ Reset</button>
+  </div>
+
+  <div id="stats">
+    <span id="position-counter">Card 1 of 1</span>
+    <span id="known-counter">Known: 0 · Still learning: 0</span>
+  </div>
+  <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+
+  <div id="card-scene">
+    <div id="card">
+      <div id="card-inner">
+        <div class="card-face card-front">
+          <div class="card-label">Term</div>
+          <div class="card-chapter-tag" id="front-chapter-tag"></div>
+          <div class="card-text" id="front-text"></div>
+        </div>
+        <div class="card-face card-back">
+          <div class="card-label">Definition</div>
+          <div class="card-chapter-tag" id="back-chapter-tag"></div>
+          <div class="card-text" id="back-text"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="flip-hint">Click or tap the card to flip</div>
+
+  <div id="nav-buttons">
+    <button id="prev-btn">← Previous</button>
+    <button id="next-btn">Next →</button>
+  </div>
+  <div id="know-buttons">
+    <button id="still-learning-btn">Still Learning</button>
+    <button id="know-it-btn">I Know This ✓</button>
+  </div>
+
+  <div id="done-screen">
+    <h2>Deck Complete!</h2>
+    <div id="done-score"></div>
+    <p id="done-sub"></p>
+    <button class="ctrl-btn" id="restart-deck-btn" style="margin-top: 14px;">Go Through Again</button>
+  </div>
+</div>
+
+<script>
+const flashcards = {
+"Life Insurance Policy Types": [
+{f:"Term life insurance", b:"Provides temporary/pure protection at the lowest initial premium. No cash value, no equity."},
+{f:"Mortgage redemption insurance", b:"A type of decreasing term life insurance policy."},
+{f:"Option to convert", b:"Lets the insured exchange term coverage for whole/permanent coverage without evidence of insurability."},
+{f:"Interim term life insurance", b:"Temporary coverage priced at original application age; permanent coverage later priced at the attained age."},
+{f:"ART / YRT", b:"Annually/Yearly Renewable Term — one-year coverage, renewable each year without evidence of insurability."},
+{f:"At what age does whole life insurance mature?", b:"Age 100."},
+{f:"Single premium whole life", b:"Most expensive whole life option upfront; one lump-sum premium creates immediate cash value."},
+{f:"Modified whole life", b:"Lower premium during an intro period, then jumps to a rate higher than standard whole life would have cost."},
+{f:"Universal Life (UL)", b:"Term insurance + cash value + flexible premiums + adjustable death benefit."},
+{f:"UL Option A vs Option B", b:"Option A = cash value + decreasing term (level total death benefit). Option B = face amount + cash value (increasing total death benefit)."},
+{f:"Variable Life (VL)", b:"Guaranteed minimum death benefit; cash value varies with investment performance; fixed premium. Selling it requires FINRA registration + state license."},
+{f:"Joint life policy", b:"Covers 2+ people; pays at the FIRST death, then the policy ends."},
+{f:"Last-to-die (survivor) policy", b:"Covers 2+ people; pays at the LAST death. Also called 'second-to-die.'"},
+{f:"Modified Endowment Contract (MEC)", b:"A policy that failed the 7-pay test (overfunded); loses favorable life insurance tax treatment."},
+{f:"STOLI", b:"Stranger-Owned Life Insurance — buying a policy solely to sell it to someone with no insurable interest."}
+],
+
+"Annuities": [
+{f:"Is an annuity a life insurance contract?", b:"No. It's specifically NOT a life insurance contract — its purpose is retirement income."},
+{f:"Annuitant", b:"The person whose life determines the annuity's payout schedule."},
+{f:"Two periods of an annuity", b:"Accumulation (pay-in) period and Annuity/payout period."},
+{f:"Bailout provision", b:"Lets the owner surrender the annuity without penalty if interest rates fall below a stated level."},
+{f:"Equity Indexed Annuity (EIA)", b:"A type of fixed annuity offering higher potential returns while still guaranteeing the principal."},
+{f:"Who can sell variable annuities?", b:"Must hold a state insurance license AND be registered with FINRA."},
+{f:"Immediate annuity", b:"First payment is made one payment interval after purchase."},
+{f:"Period certain payout option", b:"NOT based on life contingency — pays for a fixed number of years regardless of whether the annuitant is alive."},
+{f:"Joint and one-half survivor option", b:"The surviving annuitant's income is reduced to one-half of the original joint income."},
+{f:"Tax-Sheltered Annuity (TSA)", b:"Reserved for employees of non-profit organizations and school systems."}
+],
+
+"Uses of Life Insurance": [
+{f:"Human Life Value Approach", b:"Calculates coverage need based on the person's projected lifetime earnings."},
+{f:"Needs Approach", b:"Calculates coverage need based on the family's financial goals and objectives."},
+{f:"What happens to a sole proprietorship when the owner dies?", b:"The business dies with the owner."},
+{f:"Cross-purchase plan", b:"Each partner buys and owns a life insurance policy on every other partner."},
+{f:"Entity plan", b:"The business itself buys the deceased partner's share of the business."},
+{f:"What is an entity plan called for a closely held corporation?", b:"A stock redemption plan."},
+{f:"Key person insurance", b:"Protects the business from financial loss when a key owner, officer, or manager dies."},
+{f:"Executive bonus plan", b:"Employer pays a bonus that the employee uses to fund their own life insurance premiums."},
+{f:"Salary continuation plan", b:"Replaces an executive's income in the event of death, disability, or retirement."}
+],
+
+"Policy Provisions, Options & Riders": [
+{f:"Incontestable clause", b:"Insurer can't contest a policy's validity after roughly 2 years in force (age/sex misstatements are an exception)."},
+{f:"Three non-forfeiture options", b:"Cash surrender, reduced paid-up, and extended term."},
+{f:"Which non-forfeiture option provides the MOST coverage?", b:"Extended term insurance."},
+{f:"Automatic premium loan", b:"Loans against the policy's cash value to cover a missed premium after the grace period ends."},
+{f:"LTC rider trigger", b:"Generally pays when the insured can't perform at least 2 activities of daily living (ADLs)."},
+{f:"The 7 ADLs", b:"Eating, dressing, bathing, toileting, walking, transferring, taking medication."},
+{f:"Guaranteed insurability option", b:"Lets the owner buy more coverage at set future dates without proving insurability."},
+{f:"Payor rider", b:"Added to child policies; waives the premium if the paying adult dies or becomes disabled."},
+{f:"Double indemnity", b:"Pays 2x the face amount for accidental death."},
+{f:"Capital sum vs principal sum", b:"Principal sum = the accidental death benefit. Capital sum = the dismemberment benefit, generally about half the principal sum."},
+{f:"Results clause vs status war clause", b:"Assume the 'results clause' applies unless the exam explicitly names the (stricter) 'status war clause.'"}
+],
+
+"Premiums, Proceeds & Beneficiaries": [
+{f:"Net premium", b:"Covers mortality (death benefit) risk only."},
+{f:"Gross premium", b:"Mortality + interest + expense factors combined."},
+{f:"Viator", b:"The original policy owner who sells the policy in a viatical settlement."},
+{f:"Terminally ill (viatical settlement definition)", b:"Not expected to survive more than 24 months."},
+{f:"Chronically ill", b:"Needs help performing 2+ ADLs, or has a cognitive impairment requiring supervision."},
+{f:"Interest-only settlement option", b:"Insurer holds the death benefit principal and pays only the interest earned to the beneficiary."},
+{f:"Per stirpes", b:"Distribution of proceeds by bloodline."},
+{f:"Per capita", b:"Distribution of proceeds by the person/head."},
+{f:"Uniform Simultaneous Death Act", b:"If the order of death can't be determined, the insured is presumed to have died last (survived the beneficiary)."},
+{f:"Revocable vs irrevocable beneficiary", b:"Revocable = owner can change anytime. Irrevocable = requires the beneficiary's written consent to change."}
+],
+
+"Basic Principles of Life & Health Insurance": [
+{f:"Stock company", b:"Nonparticipating — owned by stockholders, doesn't pay policyholder dividends."},
+{f:"Mutual company", b:"Participating — owned by policyholders, pays dividends (the divisible surplus)."},
+{f:"Who runs a reciprocal insurer?", b:"An attorney-in-fact handles transactions."},
+{f:"Treaty reinsurance", b:"An automatic, ongoing reinsurance agreement."},
+{f:"Facultative reinsurance", b:"A one-off negotiated reinsurance agreement for a specific risk."},
+{f:"Domestic vs foreign vs alien insurer", b:"Domestic = same state. Foreign = different state. Alien = different country."},
+{f:"Agent vs broker", b:"Agent represents the insurer and can bind coverage. Broker represents the consumer and cannot bind coverage."},
+{f:"Paul v. Virginia (1868)", b:"Ruled that insurance is NOT interstate commerce."},
+{f:"US v. Southeastern Underwriters Association (1944)", b:"Reversed Paul v. Virginia — ruled insurance IS interstate commerce."},
+{f:"McCarran-Ferguson Act (1945)", b:"Returned insurance regulation authority back to the states."},
+{f:"NAIC's four objectives", b:"Encourage regulatory uniformity, promote efficient administration, protect consumers, preserve state regulation."}
+],
+
+"Legal Concepts of Insurance": [
+{f:"C.L.O.C.", b:"Competent parties, Legal purpose, Offer & acceptance, Consideration — the 4 essential contract elements."},
+{f:"Aleatory contract", b:"An unequal exchange of value — the insured may receive far more in benefits than premiums paid."},
+{f:"Contract of adhesion", b:"Written entirely by the insurer; ambiguous terms are resolved in favor of the insured."},
+{f:"When must insurable interest exist for life insurance?", b:"At the time of application — not necessarily at the time of the claim."},
+{f:"Warranty vs representation", b:"Warranty = guaranteed true. Representation = believed true to the best of the applicant's knowledge."},
+{f:"Concealment", b:"Failing or neglecting to disclose a known material fact."},
+{f:"Void vs voidable contract", b:"Void = never took legal effect (missing an essential element). Voidable = valid, but can be terminated due to a violation."},
+{f:"Estoppel", b:"Insurer is bound by an agent's incorrect statement if the consumer reasonably relied on it and was financially harmed."},
+{f:"Subrogation", b:"The insurer's right to recover claim payments from a liable third party."},
+{f:"Is life insurance a personal contract?", b:"No — unlike most insurance, it's transferable/assignable."}
+],
+
+"Underwriting & Policy Issue": [
+{f:"Adverse selection", b:"The tendency of higher-risk individuals to seek out insurance coverage."},
+{f:"Law of large numbers", b:"The more occurrences there are, the more predictable losses become."},
+{f:"Application Parts I, II, III", b:"Part I = general info. Part II = health history. Part III = financial/character info."},
+{f:"Minor age cutoff for life insurance", b:"Under age 15."},
+{f:"Conditional receipt date", b:"Always earlier than the policy's eventual issue date."},
+{f:"Binding receipt", b:"Coverage is guaranteed until the insurer formally rejects the application."},
+{f:"MIB", b:"Medical Information Bureau — a clearinghouse of applicant health info shared among insurers."},
+{f:"Three risk classifications", b:"Preferred, standard, substandard."},
+{f:"Purpose of backdating a policy", b:"Locks in a younger (and therefore cheaper) issue age."}
+],
+
+"Retirement Plans": [
+{f:"Top-heavy plan", b:"A plan where 60%+ of assets belong to key employees."},
+{f:"What are employees always immediately vested in?", b:"Their own personal contributions."},
+{f:"Three types of defined contribution plans", b:"Profit-sharing, stock bonus, and money purchase plans."},
+{f:"Keogh plan", b:"A qualified retirement plan designed for unincorporated businesses."},
+{f:"SIMPLE plan employee limit", b:"100 or fewer employees who earned $5,000+ in the prior year."},
+{f:"IRA contribution limit (under age 50)", b:"$7,000 combined across traditional + Roth IRAs."},
+{f:"Traditional IRA RMD start age", b:"Must begin by April 1 following the year the owner turns 73."},
+{f:"Indirect IRA rollover withholding", b:"20% mandatory withholding applies."},
+{f:"ERISA's purpose", b:"To protect the rights of workers covered under employer-sponsored retirement plans."}
+],
+
+"Social Security": [
+{f:"OASDHI", b:"Another name for Social Security."},
+{f:"Fully insured status requires...", b:"40 quarters of coverage."},
+{f:"Social Security lump-sum death benefit", b:"$255."},
+{f:"Blackout period", b:"The gap between the insured's death and when a surviving spouse becomes eligible for benefits."},
+{f:"Full Retirement Age (FRA/NRA)", b:"The age at which retirement benefits equal the worker's full PIA."},
+{f:"Dual benefit eligibility", b:"The individual can only collect the greater of the two available benefits, not both."},
+{f:"Medicare Part A", b:"Hospital insurance."},
+{f:"Medicare Part B", b:"Supplementary medical insurance (physician services)."},
+{f:"Medicare Part C", b:"Medicare Advantage."},
+{f:"Medicare Part D", b:"Prescription drug plan."}
+],
+
+"Health & Accident Insurance": [
+{f:"Morbidity", b:"The probability or risk of getting sick or becoming disabled."},
+{f:"Accidental means vs accidental result", b:"Means = both the cause AND the result must be unintended. Result = only the outcome needs to be unintended."},
+{f:"Five types of covered health losses", b:"Medical expense, disability, dental expense, accidental injury, and long-term care."},
+{f:"Are individual disability income benefits taxable?", b:"No — they're received income-tax-free."},
+{f:"AD&D capital sum", b:"Paid for dismemberment; generally about 50% of the principal sum."},
+{f:"Dread disease policy", b:"Provides limited benefits only for specifically named diseases (e.g., cancer, heart disease)."},
+{f:"Credit disability insurance — who is owner/beneficiary?", b:"The lender/creditor is the owner and beneficiary; the debtor is the insured."},
+{f:"Short-term medical insurance duration", b:"90 to 364 days; non-renewable."},
+{f:"Effect of a longer elimination period on premium", b:"It lowers the premium."}
+],
+
+"Health Insurance Providers": [
+{f:"Blue Cross vs Blue Shield", b:"Blue Cross covers hospital care. Blue Shield covers physician fees."},
+{f:"Defining trait of an HMO", b:"It both DELIVERS and INSURES the covered health care services."},
+{f:"HMO employer eligibility requirement", b:"Generally requires at least 25 employees."},
+{f:"Closed panel vs open panel HMO", b:"Closed panel = staff, group, and network models. Open panel = IPA."},
+{f:"Defining trait of a PPO", b:"Finances care but doesn't deliver it; no referral needed for in-network specialists."},
+{f:"POS plan", b:"Combines HMO-style in-network coverage with indemnity-style out-of-network coverage."},
+{f:"EPO", b:"No referral needed (like a PPO) + no out-of-network coverage (like an HMO)."},
+{f:"COBRA covered employers", b:"Employers with 20 or more employees."},
+{f:"COBRA benefit periods", b:"18 months (job loss), 36 months (loss of dependent status), 29 months (disability)."},
+{f:"HIPAA creditable coverage gap limit", b:"A gap of 63 days or more breaks creditable coverage."}
+],
+
+"Medical Expense Insurance": [
+{f:"Corridor deductible", b:"Paid after basic coverage ends and before major medical coverage begins."},
+{f:"Integrated deductible", b:"Basic plan benefits count toward (reduce) the deductible amount."},
+{f:"What does the stop-loss/out-of-pocket max include?", b:"Deductible + coinsurance + copays."},
+{f:"ACA metal tier actuarial values", b:"Bronze 60%, Silver 70%, Gold 80%, Platinum 90%."},
+{f:"HSA eligibility requirement", b:"Must be enrolled in a qualifying High Deductible Health Plan (HDHP)."},
+{f:"HRA vs HSA", b:"HRA = employer-only funded, NOT portable. HSA = individually owned, portable."},
+{f:"FSA rule", b:"Use it or lose it (with only a small carryover typically allowed)."},
+{f:"Sole proprietor health insurance premium deduction", b:"100% deductible as a business expense."}
+],
+
+"Health Insurance Policy Provisions": [
+{f:"NAIC uniform provisions total", b:"23 total — 12 mandatory + 11 optional."},
+{f:"Time limit on certain defenses", b:"Incontestable after 3 years generally (2 years in some states)."},
+{f:"Grace period lengths", b:"7 days for weekly premiums, 10 days for monthly, 31 days for other modes."},
+{f:"Reinstatement auto-approval window", b:"Automatic if the insurer doesn't respond within 45 days."},
+{f:"Notice of claim deadline", b:"20 days (or as soon as reasonably possible)."},
+{f:"Proof of loss deadline", b:"90 days generally (up to 1 year if legally incapable of filing sooner)."},
+{f:"Legal actions provision", b:"Must wait 60 days after proof of loss to sue; must sue within 3 years."},
+{f:"Non-cancellable vs guaranteed renewable", b:"Non-cancellable = can't change premium or terms at all. Guaranteed renewable = can raise premiums on a class basis."},
+{f:"Probationary period", b:"A one-time 30-day period that excludes sickness claims, but NOT accident claims."},
+{f:"Coordination of Benefits — when is Medicare primary?", b:"When the employer group has fewer than 20 employees."}
+]
+};
+
+let allCards = [];
+Object.entries(flashcards).forEach(([chapter, cards]) => {
+  cards.forEach(c => allCards.push({...c, chapter}));
+});
+
+const chapterSelect = document.getElementById('chapter-select');
+const allOpt = document.createElement('option');
+allOpt.value = "__ALL__";
+allOpt.textContent = `All Chapters (${allCards.length} cards)`;
+chapterSelect.appendChild(allOpt);
+Object.keys(flashcards).forEach(name => {
+  const opt = document.createElement('option');
+  opt.value = name;
+  opt.textContent = `${name} (${flashcards[name].length} cards)`;
+  chapterSelect.appendChild(opt);
+});
+
+let deck = [];
+let currentIndex = 0;
+let knownCount = 0;
+let learningCount = 0;
+let cardStatus = [];
+
+function loadDeck(chapterKey) {
+  if (chapterKey === "__ALL__") {
+    deck = [...allCards];
+  } else {
+    deck = flashcards[chapterKey].map(c => ({...c, chapter: chapterKey}));
+  }
+  currentIndex = 0;
+  knownCount = 0;
+  learningCount = 0;
+  cardStatus = new Array(deck.length).fill(null);
+  document.getElementById('done-screen').style.display = 'none';
+  document.getElementById('card-scene').style.display = 'block';
+  document.getElementById('nav-buttons').style.display = 'flex';
+  document.getElementById('know-buttons').style.display = 'flex';
+  renderCard();
+}
+
+function shuffleDeck() {
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  currentIndex = 0;
+  document.getElementById('card').classList.remove('flipped');
+  renderCard();
+}
+
+function renderCard() {
+  const card = deck[currentIndex];
+  document.getElementById('front-text').textContent = card.f;
+  document.getElementById('back-text').textContent = card.b;
+  document.getElementById('front-chapter-tag').textContent = card.chapter;
+  document.getElementById('back-chapter-tag').textContent = card.chapter;
+  document.getElementById('card').classList.remove('flipped');
+  document.getElementById('position-counter').textContent = `Card ${currentIndex + 1} of ${deck.length}`;
+  document.getElementById('known-counter').textContent = `Known: ${knownCount} · Still learning: ${learningCount}`;
+  const progressed = cardStatus.filter(s => s !== null).length;
+  document.getElementById('progress-bar').style.width = (progressed / deck.length * 100) + '%';
+}
+
+function goNext() {
+  if (currentIndex < deck.length - 1) {
+    currentIndex++;
+    document.getElementById('card').classList.remove('flipped');
+    renderCard();
+  } else {
+    showDone();
+  }
+}
+
+function goPrev() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    document.getElementById('card').classList.remove('flipped');
+    renderCard();
+  }
+}
+
+function markStatus(status) {
+  if (cardStatus[currentIndex] === 'known') knownCount--;
+  if (cardStatus[currentIndex] === 'learning') learningCount--;
+  cardStatus[currentIndex] = status;
+  if (status === 'known') knownCount++;
+  if (status === 'learning') learningCount++;
+  goNext();
+}
+
+function showDone() {
+  document.getElementById('card-scene').style.display = 'none';
+  document.getElementById('nav-buttons').style.display = 'none';
+  document.getElementById('know-buttons').style.display = 'none';
+  document.getElementById('done-screen').style.display = 'block';
+  const pct = Math.round((knownCount / deck.length) * 100);
+  document.getElementById('done-score').textContent = `${knownCount} / ${deck.length} known (${pct}%)`;
+  document.getElementById('done-sub').textContent = pct >= 80
+    ? "Great work — that's a strong pass rate!"
+    : `${learningCount} card(s) marked as still learning — go through again to reinforce them.`;
+}
+
+document.getElementById('card').addEventListener('click', () => {
+  document.getElementById('card').classList.toggle('flipped');
+});
+
+document.getElementById('next-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('card').classList.remove('flipped');
+  goNext();
+});
+document.getElementById('prev-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  goPrev();
+});
+document.getElementById('still-learning-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  markStatus('learning');
+});
+document.getElementById('know-it-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  markStatus('known');
+});
+document.getElementById('shuffle-btn').addEventListener('click', shuffleDeck);
+document.getElementById('reset-btn').addEventListener('click', () => loadDeck(chapterSelect.value));
+document.getElementById('restart-deck-btn').addEventListener('click', () => loadDeck(chapterSelect.value));
+chapterSelect.addEventListener('change', (e) => loadDeck(e.target.value));
+
+loadDeck("__ALL__");
+</script>
+</body>
+</html>
